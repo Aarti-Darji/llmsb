@@ -24,7 +24,6 @@ from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain.chains import (
     create_retrieval_chain,
     create_history_aware_retriever,
-    create_stuff_documents_chain,
     LLMChain,
     ConversationChain
 )
@@ -38,7 +37,7 @@ from langchain_community.embeddings import GPT4AllEmbeddings
 from langchain_community.document_loaders import WebBaseLoader, PyMuPDFLoader
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_chroma import Chroma
+# from langchain_chroma import Chroma
 from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferMemory
 

@@ -24,3 +24,4 @@ zarr
 esbuild_py 
 deepmerge
 python-dotenv
+duckdb
