@@ -5,6 +5,7 @@ import ast
 import os
 import io
 import requests
+import re
 
 import pandas as pd
 import numpy as np
@@ -17,6 +18,7 @@ from anndata import AnnData
 
 from termcolor import colored
 from tenacity import retry, wait_random_exponential, stop_after_attempt
+from dotenv import load_dotenv
 
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain.chains import (
