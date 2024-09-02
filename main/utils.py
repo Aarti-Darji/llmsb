@@ -5,7 +5,7 @@ import duckdb
 @tool
 def find_high_interaction_regions(channel_ids, top_n):
     """Use SQL Query to locate high concentrated regions of the channel_ids only when region is asked for"""
-    con = duckdb.connect("C:\Users\Aarti Darji\Desktop\Dataset1-LSP13626-melanoma-in-situ-256_bricks.db")
+    con = duckdb.connect("/workspaces/llmsb/data/Dataset1-LSP13626-melanoma-in-situ-256_bricks (1).db")
     ids = [i + 1 for i in channel_ids]
     results = {channel_id: np.zeros((22, 43)) for channel_id in ids}
 
@@ -65,7 +65,7 @@ import numpy as np
 @tool
 def find_low_interaction_regions(channel_ids, top_n):
     """Use SQL Query to locate low concentrated regions of the channel_ids."""
-    con = duckdb.connect("C:\Users\Aarti Darji\Desktop\Dataset1-LSP13626-melanoma-in-situ-256_bricks.db")
+    con = duckdb.connect("/workspaces/llmsb/data/Dataset1-LSP13626-melanoma-in-situ-256_bricks (1).db")
     ids = [i + 1 for i in channel_ids]
     results = {channel_id: np.zeros((22, 43)) for channel_id in ids}
 
@@ -122,7 +122,7 @@ def find_low_interaction_regions(channel_ids, top_n):
 @tool
 def find_high_low_interaction_regions(high_marker_channel_ids, low_marker_channel_ids, top_n):
     """Locate regions with high concentrations of several markers and low concentrations of other markers."""
-    con = duckdb.connect("C:\Users\Aarti Darji\Desktop\Dataset1-LSP13626-melanoma-in-situ-256_bricks.db")
+    con = duckdb.connect("/workspaces/llmsb/data/Dataset1-LSP13626-melanoma-in-situ-256_bricks (1).db")
 
     high_results = {}
     low_results = {}
@@ -212,7 +212,7 @@ def find_high_low_interaction_regions(high_marker_channel_ids, low_marker_channe
 @tool
 def find_channel_means_at_coords(coords: list) -> dict:
 
-    con = duckdb.connect("C:\Users\Aarti Darji\Desktop\Dataset1-LSP13626-melanoma-in-situ-256_bricks.db")
+    con = duckdb.connect("/workspaces/llmsb/data/Dataset1-LSP13626-melanoma-in-situ-256_bricks (1).db")
 
     channel_means = {}
 
