@@ -64,5 +64,5 @@ import ipylangchat
 import ipywidgets as widgets
 from IPython.display import display, HTML
 
-from utils import *
+# from utils import *
 from os.path import join
