@@ -40,7 +40,6 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 # from langchain_chroma import Chroma
 from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferMemory
-
 from ome_zarr.io import parse_url
 import ome_types
 

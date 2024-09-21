@@ -10,8 +10,8 @@ langchain_community
 langchain_huggingface
 langchain_chroma
 langchain_text_splitters
+urllib3
 pymupdf
-vitessce
 anywidget
 uvicorn
 starlette
@@ -25,3 +25,5 @@ esbuild_py
 deepmerge
 python-dotenv
 duckdb
+jupyterlab
+vitessce==3.3.4
