@@ -1,11 +1,20 @@
 from langchain_core.tools import tool
 import duckdb
-
+import numpy as np
 
 @tool
 def find_high_interaction_regions(channel_ids, top_n):
-    """Use SQL Query to locate high concentrated regions of the channel_ids only when region is asked for"""
-    con = duckdb.connect("C:\Users\Aarti Darji\Desktop\Dataset1-LSP13626-melanoma-in-situ-256_bricks.db")
+    """
+    Finds regions with high concentrations of the specified channels.
+
+    Args:
+        channel_ids (list): A list of channel IDs to search for high concentration regions.
+        top_n (int): The number of top regions to return based on concentration levels.
+
+    Returns:
+        list: A list of tuples containing the (x, y) coordinates of the top regions.
+    """
+    con = duckdb.connect("/workspaces/llmsb/data/Dataset1-LSP13626-melanoma-in-situ-256_bricks (1).db")
     ids = [i + 1 for i in channel_ids]
     results = {channel_id: np.zeros((22, 43)) for channel_id in ids}
 
@@ -59,13 +68,19 @@ def find_high_interaction_regions(channel_ids, top_n):
     con.close()
     return final_coords
 
-import duckdb
-import numpy as np
-
 @tool
 def find_low_interaction_regions(channel_ids, top_n):
-    """Use SQL Query to locate low concentrated regions of the channel_ids."""
-    con = duckdb.connect("C:\Users\Aarti Darji\Desktop\Dataset1-LSP13626-melanoma-in-situ-256_bricks.db")
+    """
+    Finds regions with low concentrations of the specified channels.
+
+    Args:
+        channel_ids (list): A list of channel IDs to search for low concentration regions.
+        top_n (int): The number of top regions to return based on low concentration levels.
+
+    Returns:
+        list: A list of tuples containing the (x, y) coordinates of the top low-concentration regions.
+    """
+    con = duckdb.connect("/workspaces/llmsb/data/Dataset1-LSP13626-melanoma-in-situ-256_bricks (1).db")
     ids = [i + 1 for i in channel_ids]
     results = {channel_id: np.zeros((22, 43)) for channel_id in ids}
 
@@ -121,8 +136,18 @@ def find_low_interaction_regions(channel_ids, top_n):
 
 @tool
 def find_high_low_interaction_regions(high_marker_channel_ids, low_marker_channel_ids, top_n):
-    """Locate regions with high concentrations of several markers and low concentrations of other markers."""
-    con = duckdb.connect("C:\Users\Aarti Darji\Desktop\Dataset1-LSP13626-melanoma-in-situ-256_bricks.db")
+    """
+    Finds regions with high concentrations of specified high markers and low concentrations of specified low markers.
+
+    Args:
+        high_marker_channel_ids (list): A list of channel IDs to search for high concentration regions.
+        low_marker_channel_ids (list): A list of channel IDs to search for low concentration regions.
+        top_n (int): The number of top regions to return based on high and low concentration levels.
+
+    Returns:
+        list: A list of tuples containing the (x, y) coordinates of the top regions with high and low concentrations.
+    """
+    con = duckdb.connect("/workspaces/llmsb/data/Dataset1-LSP13626-melanoma-in-situ-256_bricks (1).db")
 
     high_results = {}
     low_results = {}
@@ -211,8 +236,17 @@ def find_high_low_interaction_regions(high_marker_channel_ids, low_marker_channe
 
 @tool
 def find_channel_means_at_coords(coords: list) -> dict:
+    """
+    Finds the mean values of channels at the specified coordinates.
 
-    con = duckdb.connect("C:\Users\Aarti Darji\Desktop\Dataset1-LSP13626-melanoma-in-situ-256_bricks.db")
+    Args:
+        coords (list): A list of (x, y) tuples representing the coordinates to find the channel means.
+
+    Returns:
+        dict: A dictionary where keys are channel IDs and values are tuples containing
+              (combined region mean, average mean across bricks, maximum mean, minimum mean).
+    """
+    con = duckdb.connect("/workspaces/llmsb/data/Dataset1-LSP13626-melanoma-in-situ-256_bricks (1).db")
 
     channel_means = {}
 
@@ -228,7 +262,6 @@ def find_channel_means_at_coords(coords: list) -> dict:
           AND SPLIT_PART(bricks.chunk_key, '.', 4) = '{y_chunk}'
           AND SPLIT_PART(bricks.chunk_key, '.', 3) = '100';
         """
-        #look thru list of (x,y)
         res = con.execute(query)
         queryresult = res.fetchall()
         for entry in queryresult:
@@ -280,4 +313,3 @@ def find_channel_means_at_coords(coords: list) -> dict:
 
     con.close()
     return final_channel_means
-
