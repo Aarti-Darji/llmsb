@@ -9,7 +9,6 @@ langchain_openai
 langchain_community
 langchain_huggingface
 langchain_chroma
-langgraph.checkpoint.memory 
 langchain_text_splitters
 urllib3
 pymupdf

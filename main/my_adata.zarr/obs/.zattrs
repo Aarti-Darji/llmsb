@@ -1,0 +1,10 @@
+{
+    "_index": "brick_id",
+    "column-order": [
+        "vertices",
+        "center",
+        "initial_sets"
+    ],
+    "encoding-type": "dataframe",
+    "encoding-version": "0.2.0"
+}

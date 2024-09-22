@@ -7,9 +7,9 @@ import io
 import requests
 import re
 
-import pandas as pd
-import numpy as np
-import dask.array as da
+# import pandas as pd
+# import numpy as np
+# import dask.array as da
 import zarr
 import duckdb
 import tifffile
@@ -57,8 +57,8 @@ from vitessce import (
     get_initial_coordination_scope_prefix
 )
 
-from deepmerge import always_merger as merge
-from esbuild_py import transform
+# from deepmerge import always_merger as merge
+# from esbuild_py import transform
 
 import ipylangchat
 import ipywidgets as widgets
