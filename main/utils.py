@@ -1,26 +1,18 @@
-from langchain_core.tools import tool
-import duckdb
-import numpy as np
-
 @tool
 def find_high_interaction_regions(channel_ids, top_n):
-    """
-    Finds regions with high concentrations of the specified channels.
+    """Locate high-concentrated regions for the given channel_ids and return the top coordinates in y.x format."""
 
-    Args:
-        channel_ids (list): A list of channel IDs to search for high concentration regions.
-        top_n (int): The number of top regions to return based on concentration levels.
+    import duckdb
+    import numpy as np
 
-    Returns:
-        list: A list of tuples containing the (x, y) coordinates of the top regions.
-    """
-    con = duckdb.connect("/workspaces/llmsb/data/Dataset1-LSP13626-melanoma-in-situ-256_bricks (1).db")
+    con = duckdb.connect('/content/drive/MyDrive/Dataset1-LSP13626-melanoma-in-situ-256_bricks (1).db')
     ids = [i + 1 for i in channel_ids]
     results = {channel_id: np.zeros((22, 43)) for channel_id in ids}
 
+    # Step 1: Execute the SQL query and gather results for each requested channel
     for channel_id in ids:
         query = f"""
-        SELECT bricks.chunk_key,
+        SELECT bricks.id,
                SPLIT_PART(bricks.chunk_key, '.', 5) AS x,
                SPLIT_PART(bricks.chunk_key, '.', 4) AS y,
                bricks.mean
@@ -28,26 +20,34 @@ def find_high_interaction_regions(channel_ids, top_n):
         WHERE bricks.channel_id = {channel_id}
           AND SPLIT_PART(bricks.chunk_key, '.', 3) = '100'
           AND bricks.mean > (
-            SELECT AVG(mean)
-            FROM bricks AS brick_b
-            WHERE bricks.channel_id = brick_b.channel_id
-              AND brick_b.mean > 0
-            GROUP BY brick_b.channel_id
-        );
+                SELECT AVG(mean)
+                FROM bricks AS brick_b
+                WHERE bricks.channel_id = brick_b.channel_id
+                  AND brick_b.mean > 0
+                GROUP BY brick_b.channel_id
+            );
         """
 
         res = con.execute(query)
         queryresult = res.fetchall()
 
+        # Step 2: Collect mean values for each coordinate
         for entry in queryresult:
             x = int(entry[1])
             y = int(entry[2])
             mean = entry[3]
-            results[channel_id][y, x] = mean
 
+            # Check array bounds
+            if 0 <= y < 22 and 0 <= x < 43:
+                results[channel_id][y, x] = mean
+            else:
+                print(f"Warning: x or y out of bounds. x={x}, y={y}")
+
+        # Normalize the result for this channel
         if np.max(results[channel_id]) != 0:
             results[channel_id] = results[channel_id] / np.max(results[channel_id])
 
+    # Step 3: Combine results across channels to find top regions
     combined_result = np.zeros((22, 43))
     for channel_id in ids:
         combined_result += results[channel_id]
@@ -57,30 +57,17 @@ def find_high_interaction_regions(channel_ids, top_n):
     top_coords = np.unravel_index(top_indices, combined_result.shape)
     top_coords = list(zip(top_coords[0], top_coords[1]))
 
-    final_coords = []
-    for (y, x) in top_coords:
-        y = int(y) + 0.5
-        x = int(x) + 0.5
-        x = x * 256
-        y = y * 256
-        final_coords.append((x, y))
+    # Return the final coordinates in y.x format
+    final_coords = [f"{y}.{x}" for y, x in top_coords]
 
     con.close()
     return final_coords
 
 @tool
 def find_low_interaction_regions(channel_ids, top_n):
-    """
-    Finds regions with low concentrations of the specified channels.
+    """Locate low-concentrated regions for the given channel_ids and return the top coordinates in y.x format."""
 
-    Args:
-        channel_ids (list): A list of channel IDs to search for low concentration regions.
-        top_n (int): The number of top regions to return based on low concentration levels.
-
-    Returns:
-        list: A list of tuples containing the (x, y) coordinates of the top low-concentration regions.
-    """
-    con = duckdb.connect("/workspaces/llmsb/data/Dataset1-LSP13626-melanoma-in-situ-256_bricks (1).db")
+    con = duckdb.connect('/content/drive/MyDrive/Dataset1-LSP13626-melanoma-in-situ-256_bricks (1).db')
     ids = [i + 1 for i in channel_ids]
     results = {channel_id: np.zeros((22, 43)) for channel_id in ids}
 
@@ -118,40 +105,28 @@ def find_low_interaction_regions(channel_ids, top_n):
     for channel_id in ids:
         combined_result += results[channel_id]
 
+    # Flatten and sort to find regions with the lowest mean values
     flat_combined_result = combined_result.flatten()
     top_indices = np.argsort(flat_combined_result)[:top_n]  # Get indices for the lowest values
     top_coords = np.unravel_index(top_indices, combined_result.shape)
     top_coords = list(zip(top_coords[0], top_coords[1]))
 
-    final_coords = []
-    for (y, x) in top_coords:
-        y = int(y) + 0.5
-        x = int(x) + 0.5
-        x = x * 256
-        y = y * 256
-        final_coords.append((x, y))
+    # Return the final coordinates in y.x format
+    final_coords = [f"{y}.{x}" for y, x in top_coords]
 
     con.close()
     return final_coords
 
 @tool
 def find_high_low_interaction_regions(high_marker_channel_ids, low_marker_channel_ids, top_n):
-    """
-    Finds regions with high concentrations of specified high markers and low concentrations of specified low markers.
+    """Locate regions with high concentrations of several markers and low concentrations of other markers."""
+    con = duckdb.connect('/content/drive/MyDrive/Dataset1-LSP13626-melanoma-in-situ-256_bricks (1).db')
 
-    Args:
-        high_marker_channel_ids (list): A list of channel IDs to search for high concentration regions.
-        low_marker_channel_ids (list): A list of channel IDs to search for low concentration regions.
-        top_n (int): The number of top regions to return based on high and low concentration levels.
-
-    Returns:
-        list: A list of tuples containing the (x, y) coordinates of the top regions with high and low concentrations.
-    """
-    con = duckdb.connect("/workspaces/llmsb/data/Dataset1-LSP13626-melanoma-in-situ-256_bricks (1).db")
-
+    # Initialize result arrays for high and low markers
     high_results = {}
     low_results = {}
 
+    # Query for high markers
     for channel_id in high_marker_channel_ids:
         query = f"""
         SELECT SPLIT_PART(chunk_key, '.', 5) AS x,
@@ -182,6 +157,7 @@ def find_high_low_interaction_regions(high_marker_channel_ids, low_marker_channe
 
         high_results[channel_id] = results
 
+    # Query for low markers
     for channel_id in low_marker_channel_ids:
         query = f"""
         SELECT SPLIT_PART(chunk_key, '.', 5) AS x,
@@ -212,77 +188,96 @@ def find_high_low_interaction_regions(high_marker_channel_ids, low_marker_channe
 
         low_results[channel_id] = results
 
+    # Combine results for high markers
     combined_high_result = np.min([high_results[channel_id] for channel_id in high_marker_channel_ids], axis=0)
 
+    # Combine results for low markers
     combined_low_result = np.max([low_results[channel_id] for channel_id in low_marker_channel_ids], axis=0)
 
+    # Calculate final result
     final_result = combined_high_result - combined_low_result
 
+    # Get top N coordinates
     flat_combined_result = final_result.flatten()
     top_indices = np.argsort(flat_combined_result)[-top_n:][::-1]
     top_coords = np.unravel_index(top_indices, final_result.shape)
     top_coords = list(zip(top_coords[0], top_coords[1]))
 
-    final_coords = []
-    for (y, x) in top_coords:
-        y = int(y) + 0.5
-        x = int(x) + 0.5
-        x = x * 256
-        y = y * 256
-        final_coords.append((x, y))
+    # Return the final coordinates in y.x format
+    final_coords = [f"{y}.{x}" for y, x in top_coords]
 
     con.close()
     return final_coords
 
+
 @tool
-def find_channel_means_at_coords(coords: list) -> dict:
+def find_channel_means_at_coords(coords: list, channel_ids: list = None) -> dict:
     """
-    Finds the mean values of channels at the specified coordinates.
+    Locate the bricks with the given coordinates in 'y.x' format, and optionally filter by channel_ids.
+    Add 1 to channel IDs provided.
+    Return the channel brick mean, overall tissue mean, max mean, and min mean for each channel.
 
     Args:
-        coords (list): A list of (x, y) tuples representing the coordinates to find the channel means.
+    coords (list of str): A list of coordinates in 'y.x' format as strings.
+    channel_ids (list of int, optional): A list of channel IDs to filter by. If None, return statistics for all channels.
 
     Returns:
-        dict: A dictionary where keys are channel IDs and values are tuples containing
-              (combined region mean, average mean across bricks, maximum mean, minimum mean).
+    dict: A dictionary with channel IDs as keys and a tuple of (combined region mean, average mean, max mean, min mean) as values.
     """
-    con = duckdb.connect("/workspaces/llmsb/data/Dataset1-LSP13626-melanoma-in-situ-256_bricks (1).db")
+    con = duckdb.connect('/content/drive/MyDrive/Dataset1-LSP13626-melanoma-in-situ-256_bricks (1).db')
 
     channel_means = {}
 
-    for (x_coord, y_coord) in coords:
-        x_chunk = x_coord / 256
-        y_chunk = y_coord / 256
-        y_chunk = int(y_chunk)
-        x_chunk = int(x_chunk)
-        query = f"""
-        SELECT bricks.channel_id, bricks.mean
-        FROM bricks
-        WHERE SPLIT_PART(bricks.chunk_key, '.', 5) = '{x_chunk}'
-          AND SPLIT_PART(bricks.chunk_key, '.', 4) = '{y_chunk}'
-          AND SPLIT_PART(bricks.chunk_key, '.', 3) = '100';
-        """
-        res = con.execute(query)
-        queryresult = res.fetchall()
-        for entry in queryresult:
-            channel_id = entry[0]
-            brick_mean = entry[1]
-            if brick_mean is None or brick_mean <= 0:
-                continue  
+    # Prepare a list of conditions for the query using the coords
+    coord_conditions = []
+    for coord in coords:
+        y_chunk, x_chunk = coord.split('.')
+        coord_conditions.append(f"(SPLIT_PART(bricks.chunk_key, '.', 5) = '{x_chunk}' AND SPLIT_PART(bricks.chunk_key, '.', 4) = '{y_chunk}')")
 
-            if channel_id not in channel_means:
-                channel_means[channel_id] = []
+    # Join all the conditions with OR to form a single query
+    coord_conditions_str = " OR ".join(coord_conditions)
 
-            channel_means[channel_id].append(brick_mean)
+    # Add 1 to each channel ID if provided
+    if channel_ids:
+        channel_ids = [channel_id + 1 for channel_id in channel_ids]  # Increment each channel_id by 1
+        channel_ids_str = ", ".join(map(str, channel_ids))  # Convert channel IDs to a string format for SQL
+        channel_condition = f"AND bricks.channel_id IN ({channel_ids_str})"
+    else:
+        channel_condition = ""  # No filtering by channel_id
+
+    # Single query for all the coordinates
+    query = f"""
+    SELECT bricks.channel_id, bricks.mean
+    FROM bricks
+    WHERE ({coord_conditions_str})
+      AND SPLIT_PART(bricks.chunk_key, '.', 3) = '100'
+      {channel_condition};
+    """
+
+    # Execute the query and fetch results
+    res = con.execute(query)
+    queryresult = res.fetchall()
+
+    for entry in queryresult:
+        channel_id = entry[0]
+        brick_mean = entry[1]
+        if brick_mean is None or brick_mean <= 0:
+            continue  # Skip if the mean is None or 0
+
+        if channel_id not in channel_means:
+            channel_means[channel_id] = []
+
+        channel_means[channel_id].append(brick_mean)
 
     final_channel_means = {}
 
     for channel_id, brick_means in channel_means.items():
         if not brick_means:
-            continue  
+            continue  # Skip channels that have no valid means
 
         combined_region_mean = sum(brick_means) / len(brick_means)
 
+        # Query to get the average mean for the channel
         avg_query = f"""
         SELECT AVG(mean)
         FROM bricks
@@ -292,6 +287,7 @@ def find_channel_means_at_coords(coords: list) -> dict:
         avg_res = con.execute(avg_query)
         avg_mean = avg_res.fetchone()[0]
 
+        # Query to get the max mean for the channel
         max_query = f"""
         SELECT MAX(mean)
         FROM bricks
@@ -300,6 +296,7 @@ def find_channel_means_at_coords(coords: list) -> dict:
         max_res = con.execute(max_query)
         max_mean = max_res.fetchone()[0]
 
+        # Query to get the min mean for the channel
         min_query = f"""
         SELECT MIN(mean)
         FROM bricks
@@ -308,11 +305,12 @@ def find_channel_means_at_coords(coords: list) -> dict:
         min_res = con.execute(min_query)
         min_mean = min_res.fetchone()[0]
 
-        adjusted_channel_id = channel_id - 1
+        adjusted_channel_id = channel_id - 1  # Adjust back for the final result
         final_channel_means[adjusted_channel_id] = (combined_region_mean, avg_mean, max_mean, min_mean)
 
     con.close()
     return final_channel_means
+
 
 def invoke_agent(message):
     payload = {"input": message}
@@ -381,7 +379,7 @@ def update_config_with_brick_ids(old_config, brick_ids_to_highlight):
 def parse_and_merge_config(old_config, output_text):
     code_block_match = re.search(r'```python\n(.*?)\n```', output_text, re.DOTALL)
     if not code_block_match:
-        print("No code block found in agent's response.")
+        # print("No code block found in agent's response.")
         return old_config  # Return the old configuration if no match is found
 
     code_block = code_block_match.group(1).strip()
@@ -429,8 +427,21 @@ def apply_config_to_widget(vw, new_config):
     vw.config = new_config
 
 def extract_selected_bricks(config):
-    selection_ids = []
+    """
+    Extract the selected bricks (coordinates) and the associated channels/markers from the configuration.
 
+    Args:
+    config (dict): The vw.config dictionary.
+
+    Returns:
+    tuple: A tuple containing two lists:
+           - A list of selection IDs (coordinates in 'y.x' format).
+           - A list of channel IDs (markers) corresponding to those coordinates.
+    """
+    selection_info = []
+    channels = []
+
+    # Extract selection details (coordinates)
     if (config.get('coordinationSpace') and
         config['coordinationSpace'].get('obsSetSelection') and
         config['coordinationSpace']['obsSetSelection'].get('A') and
@@ -451,7 +462,43 @@ def extract_selected_bricks(config):
                             selection_details = child['set']
 
             if selection_details:
-                # No conversion to int, since selection IDs are now in 'y.x' format
-                selection_ids = [item[0] for item in selection_details]  # Leave as string
-                print(selection_details)
-    return selection_ids
+                # Extract selection coordinates (in 'y.x' format)
+                selection_info = [item[0] for item in selection_details]
+
+    # Extract channels/markers from spatialTargetC
+    if config.get('coordinationSpace') and config['coordinationSpace'].get('spatialTargetC'):
+        spatial_target_c = config['coordinationSpace']['spatialTargetC']
+
+        # Extract the selected channels/markers
+        channels = [spatial_target_c[key] for key in spatial_target_c if 'init_bv_image' in key]
+    # print(selection_info, channels)
+    return selection_info, channels
+
+def send_message(message, buffers):
+    global vw
+    if vw is None:
+        print("Widget not initialized.")
+        return
+
+    old_config = copy.deepcopy(vw.config)
+    selected_bricks, channels = extract_selected_bricks(old_config)
+
+    if selected_bricks:
+        message += f" The user has selected the following bricks: {selected_bricks}. And these are the following markers currently highlighted: {channels}"
+        # print(message)
+    descr, output_text = invoke_agent(message)
+    brick_ids_to_highlight = extract_brick_ids(output_text)
+    new_config = parse_and_merge_config(old_config, output_text)
+
+    if brick_ids_to_highlight:
+        new_config = update_config_with_brick_ids(new_config, brick_ids_to_highlight)
+
+    apply_config_to_widget(vw, new_config)
+
+    return {**new_config, "text": descr}, []
+
+class ChatPlugin(VitesscePlugin):
+    plugin_esm = PLUGIN_ESM
+    commands = {
+        "chat_send": send_message,
+    }
